@@ -1,0 +1,132 @@
+import pandas as pd
+
+input_file = "powerlifting_meets_dataset.csv"
+output_file = "clean_powerlifting_dataset.csv"
+
+df = pd.read_csv(input_file)
+
+print("Original dataset shape:", df.shape)
+
+print("\nOriginal columns:")
+print(df.columns.tolist())
+
+print("\nMissing values before cleaning:")
+print(df.isnull().sum())
+
+print("\nDuplicate rows before cleaning:")
+print(df.duplicated().sum())
+
+
+# Remove duplicate rows
+df = df.drop_duplicates()
+
+
+# Remove rows where important information is missing
+df = df.dropna(
+    subset=["Federation", "Date", "MeetName"]
+)
+
+
+# Convert Date to datetime
+df["Date"] = pd.to_datetime(
+    df["Date"],
+    errors="coerce"
+)
+
+
+# Remove rows with invalid dates
+df = df.dropna(
+    subset=["Date"]
+)
+
+
+# Convert Lifters to numeric
+df["Lifters"] = pd.to_numeric(
+    df["Lifters"],
+    errors="coerce"
+)
+
+
+# Fill missing Lifters with 0
+df["Lifters"] = df["Lifters"].fillna(0)
+
+
+# Make sure Lifters are integers
+df["Lifters"] = df["Lifters"].astype(int)
+
+
+# Clean text columns
+text_columns = [
+    "Federation",
+    "MeetCountry",
+    "MeetState",
+    "MeetTown",
+    "MeetName"
+]
+
+for column in text_columns:
+    df[column] = (
+        df[column]
+        .astype(str)
+        .str.strip()
+        .str.replace(r"\s+", " ", regex=True)
+    )
+
+
+# Create Year column
+df["Year"] = df["Date"].dt.year
+
+
+# Sort data by date
+df = df.sort_values(
+    by="Date"
+)
+
+
+# Reset index
+df = df.reset_index(drop=True)
+
+
+# Create new MeetID
+df["MeetID"] = range(1, len(df) + 1)
+
+
+# Arrange columns
+df = df[
+    [
+        "MeetID",
+        "Federation",
+        "Date",
+        "MeetCountry",
+        "MeetState",
+        "MeetTown",
+        "MeetName",
+        "Lifters",
+        "Year"
+    ]
+]
+
+
+# Save cleaned dataset
+df.to_csv(
+    output_file,
+    index=False,
+    encoding="utf-8-sig"
+)
+
+
+print("\n========== CLEANING COMPLETED ==========")
+
+print("Cleaned dataset shape:", df.shape)
+
+print("\nMissing values after cleaning:")
+print(df.isnull().sum())
+
+print("\nDuplicate rows after cleaning:")
+print(df.duplicated().sum())
+
+print("\nFirst 10 cleaned rows:")
+print(df.head(10))
+
+print("\nClean dataset saved as:")
+print(output_file)
